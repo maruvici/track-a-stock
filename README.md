@@ -10,11 +10,13 @@ A mockup of a simple full-stack brokerage web app made for simulating stock tran
 - cs50
 - flask
 - flask-session
+- gunicorn
 - python-dotenv
 - werkzeug
 
 ## Roadmap
 - refactor: Decouple from CS50 module
+- refactor: Switch to Postgres
 - refactor: Switch to FastAPI
 - docs: Document system design
 - test: Add automated tests
@@ -23,3 +25,4 @@ A mockup of a simple full-stack brokerage web app made for simulating stock tran
 - ~~feat: Initialize venv with dependencies~~
 - ~~refactor: Make app.py modular~~
 - ~~feat: Implement light/dark mode~~
+- ~~feat: Deploy using gunicorn~~
