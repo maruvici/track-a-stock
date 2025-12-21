@@ -14,8 +14,6 @@ A mockup of a simple full-stack brokerage web app made for simulating stock tran
 - werkzeug
 
 ## Roadmap
-- feat: Initialize venv with dependencies
-- refactor: Make app.py modular
 - feat: Implement light/dark mode
 - refactor: Decouple from CS50 module
 - refactor: Switch to FastAPI
@@ -23,3 +21,5 @@ A mockup of a simple full-stack brokerage web app made for simulating stock tran
 - test: Add automated tests
 - feat: Dockerize app
 - ~~refactor: Change directory layout~~
+- ~~feat: Initialize venv with dependencies~~
+- ~~refactor: Make app.py modular~~

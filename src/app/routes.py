@@ -1,51 +1,32 @@
-import os
+from flask import (
+    Blueprint,
+    flash,
+    redirect,
+    render_template,
+    request,
+    session,
+    current_app,
+)
+
 from datetime import datetime
 
-from cs50 import SQL
-from flask import Flask, flash, redirect, render_template, request, session
-from flask_session import Session
 from werkzeug.security import check_password_hash, generate_password_hash
 
-from helpers import apology, login_required, lookup, usd
+from .helpers import apology, login_required, lookup, usd
 
-# Configure application
-app = Flask(__name__)
+main = Blueprint("main", __name__)
 
-# Custom filter
-app.jinja_env.filters["usd"] = usd
+def get_db():
+    return current_app.db
 
-# Configure session to use filesystem (instead of signed cookies)
-app.config["SESSION_PERMANENT"] = False
-app.config["SESSION_TYPE"] = "filesystem"
-Session(app)
-
-# Configure CS50 Library to use SQLite database
-db = SQL("sqlite:///finance.db")
-
-# Create history and shares table if not yet created
-addHistoryExist = db.execute(
-    "SELECT name FROM sqlite_master WHERE type='table' AND name='addHistory';")
-historyExist = db.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='history';")
-sharesExist = db.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='shares';")
-
-if not historyExist:
-    db.execute("CREATE TABLE history (id INTEGER NOT NULL, transactType TEXT NOT NULL, stockSymbol TEXT NOT NULL, stockPrice NUMERIC NOT NULL, shares INTEGER NOT NULL, timestamp DATETIME NOT NULL, FOREIGN KEY (id) REFERENCES users(id));")
-if not sharesExist:
-    db.execute("CREATE TABLE shares (id INTEGER NOT NULL, stockSymbol TEXT NOT NULL, stockShares INTEGER NOT NULL DEFAULT 0, FOREIGN KEY (id) REFERENCES users(id));")
-if not addHistoryExist:
-    db.execute("CREATE TABLE addHistory (id INTEGER NOT NULL, cash NUMERIC NOT NULL, timestamp DATETIME NOT NULL, FOREIGN KEY (id) REFERENCES users(id));")
-
-
-@app.after_request
+@main.after_request
 def after_request(response):
-    """Ensure responses aren't cached"""
     response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
     response.headers["Expires"] = 0
     response.headers["Pragma"] = "no-cache"
     return response
 
-
-@app.route("/")
+@main.route("/")
 @login_required
 def index():
     """Show portfolio of stocks"""
@@ -53,7 +34,7 @@ def index():
     total_sum = 0
 
     # Obtain all current stocks and shares of user
-    stock_list = db.execute(
+    stock_list = get_db().execute(
         "SELECT stockSymbol, stockShares FROM shares WHERE id = ?;", session["user_id"])
 
     # Iterate through each stock in user's stock list
@@ -77,14 +58,14 @@ def index():
         total_sum += total_holdings
 
     # Obtain current cash balance of user
-    user_cash = db.execute("SELECT cash FROM users WHERE id = ?;", session["user_id"])[0]["cash"]
+    user_cash = get_db().execute("SELECT cash FROM users WHERE id = ?;", session["user_id"])[0]["cash"]
 
     # Add current cash balanace to total sum
     total_sum += user_cash
     return render_template("index.html", stockList=stock_list, userCash=round(user_cash, 2), totalSum=round(total_sum, 2))
 
 
-@app.route("/add", methods=["GET", "POST"])
+@main.route("/add", methods=["GET", "POST"])
 @login_required
 def add():
     """Add cash to user's cash balance"""
@@ -96,11 +77,11 @@ def add():
             return apology("must provide valid cash to add", 400)
 
         # Update user's cash balance
-        db.execute("UPDATE users SET cash = cash + ? WHERE id = ?;", cash, session["user_id"])
+        get_db().execute("UPDATE users SET cash = cash + ? WHERE id = ?;", cash, session["user_id"])
 
         # Insert add transaction to addHistory table
         timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        db.execute("INSERT INTO addHistory (id, cash, timestamp) VALUES (?, ?, ?);",
+        get_db().execute("INSERT INTO addHistory (id, cash, timestamp) VALUES (?, ?, ?);",
                    session["user_id"], cash, timestamp)
 
         return redirect("/")
@@ -108,7 +89,7 @@ def add():
         return render_template("add.html")
 
 
-@app.route("/buy", methods=["GET", "POST"])
+@main.route("/buy", methods=["GET", "POST"])
 @login_required
 def buy():
     """Buy shares of stock"""
@@ -134,7 +115,7 @@ def buy():
             return apology("must provide valid share count", 400)
 
         # Determine cash balance of user
-        user_cash = db.execute("SELECT cash FROM users WHERE id = ?;", user_id)[0]["cash"]
+        user_cash = get_db().execute("SELECT cash FROM users WHERE id = ?;", user_id)[0]["cash"]
 
         # Validate user can buy stock
         price = stock_details["price"]
@@ -143,30 +124,30 @@ def buy():
 
         # Insert transaction details to transaction history table
         timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        db.execute("INSERT INTO history (id, transactType, stockSymbol, stockPrice, shares, timestamp) VALUES (?, ?, ?, ?, ?, ?);",
+        get_db().execute("INSERT INTO history (id, transactType, stockSymbol, stockPrice, shares, timestamp) VALUES (?, ?, ?, ?, ?, ?);",
                    user_id, "BUY", symbol, price, shares, timestamp)
 
         # Check if stock already exists in shares table
-        stockExist = db.execute(
+        stockExist = get_db().execute(
             "SELECT * FROM shares WHERE stockSymbol = ? AND id = ?;", symbol, user_id)
 
         # Adjust user's shares in shares table
         if stockExist:
-            db.execute(
+            get_db().execute(
                 "UPDATE shares SET stockShares = stockShares + ? WHERE stockSymbol = ? AND id = ?;", shares, symbol, user_id)
         else:
-            db.execute("INSERT INTO shares (id, stockSymbol, stockShares) VALUES (?, ?, ?);",
+            get_db().execute("INSERT INTO shares (id, stockSymbol, stockShares) VALUES (?, ?, ?);",
                        user_id, symbol, shares)
 
         # Adjust user's cash balance in users table
-        db.execute("UPDATE users SET cash = cash - ? WHERE id = ?", price * shares, user_id)
+        get_db().execute("UPDATE users SET cash = cash - ? WHERE id = ?", price * shares, user_id)
         return redirect("/")
 
     else:
         return render_template("buy.html")
 
 
-@app.route("/change", methods=["GET", "POST"])
+@main.route("/change", methods=["GET", "POST"])
 def change():
     """Change a given user's password"""
 
@@ -177,7 +158,7 @@ def change():
         new_password = request.form.get("newPassword")
 
         # Validate user exists
-        userDetails = db.execute("SELECT * FROM users WHERE username = ?;", username)
+        userDetails = get_db().execute("SELECT * FROM users WHERE username = ?;", username)
 
         if not userDetails or not check_password_hash(
             userDetails[0]["hash"], old_password
@@ -188,7 +169,7 @@ def change():
         new_password_hash = generate_password_hash(new_password)
 
         # Replace old password with new password
-        db.execute("UPDATE users SET hash = ? WHERE id = ? AND username = ?;",
+        get_db().execute("UPDATE users SET hash = ? WHERE id = ? AND username = ?;",
                    new_password_hash, userDetails[0]["id"], username)
 
         # Forget any user_id
@@ -200,16 +181,16 @@ def change():
         return render_template("change.html")
 
 
-@app.route("/history")
+@main.route("/history")
 @login_required
 def history():
     """Show history of transactions"""
-    transaction_list = db.execute("SELECT * FROM history WHERE id = ?;", session["user_id"])
-    add_transaction_list = db.execute("SELECT * FROM addHistory WHERE id = ?;", session["user_id"])
+    transaction_list = get_db().execute("SELECT * FROM history WHERE id = ?;", session["user_id"])
+    add_transaction_list = get_db().execute("SELECT * FROM addHistory WHERE id = ?;", session["user_id"])
     return render_template("history.html", transactionList=transaction_list, addTransactionList=add_transaction_list)
 
 
-@app.route("/login", methods=["GET", "POST"])
+@main.route("/login", methods=["GET", "POST"])
 def login():
     """Log user in"""
 
@@ -227,7 +208,7 @@ def login():
             return apology("must provide password", 400)
 
         # Query database for username
-        rows = db.execute(
+        rows = get_db().execute(
             "SELECT * FROM users WHERE username = ?", request.form.get("username")
         )
 
@@ -248,7 +229,7 @@ def login():
         return render_template("login.html")
 
 
-@app.route("/logout")
+@main.route("/logout")
 def logout():
     """Log user out"""
 
@@ -259,7 +240,7 @@ def logout():
     return redirect("/")
 
 
-@app.route("/quote", methods=["GET", "POST"])
+@main.route("/quote", methods=["GET", "POST"])
 @login_required
 def quote():
     """Get stock quote."""
@@ -284,7 +265,7 @@ def quote():
         return render_template("quote.html")
 
 
-@app.route("/register", methods=["GET", "POST"])
+@main.route("/register", methods=["GET", "POST"])
 def register():
     """Register user"""
 
@@ -307,7 +288,7 @@ def register():
             return apology("must provide username", 400)
 
         try:
-            db.execute("INSERT INTO users (username, hash) VALUES (?, ?);", username, password_hash)
+            get_db().execute("INSERT INTO users (username, hash) VALUES (?, ?);", username, password_hash)
         except ValueError:
             return apology("username already exists", 400)
 
@@ -318,7 +299,7 @@ def register():
         return render_template("register.html")
 
 
-@app.route("/sell", methods=["GET", "POST"])
+@main.route("/sell", methods=["GET", "POST"])
 @login_required
 def sell():
     """Sell shares of stock"""
@@ -347,7 +328,7 @@ def sell():
         price = stock_details["price"]
 
         # Obtain all current stocks and shares of user
-        stock_list = db.execute(
+        stock_list = get_db().execute(
             "SELECT stockSymbol, stockShares FROM shares WHERE id = ?;", session["user_id"])
 
         # Validate ownership of stock and correct shares amount
@@ -368,26 +349,28 @@ def sell():
 
         # Insert transaction details to transaction history table
         timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        db.execute("INSERT INTO history (id, transactType, stockSymbol, stockPrice, shares, timestamp) VALUES (?, ?, ?, ?, ?, ?);",
+        get_db().execute("INSERT INTO history (id, transactType, stockSymbol, stockPrice, shares, timestamp) VALUES (?, ?, ?, ?, ?, ?);",
                    user_id, "SELL", symbol, price, shares, timestamp)
 
         # If cur_shares is higher than shares, update shares table
         if cur_shares > shares:
-            db.execute(
+            get_db().execute(
                 "UPDATE shares SET stockShares = stockShares - ? WHERE id = ? AND stockSymbol = ?;", shares, user_id, symbol)
 
         # If cur_shares is equal to shares, delete row in shares table
         elif cur_shares == shares:
-            db.execute(
+            get_db().execute(
                 "DELETE FROM shares WHERE id = ? AND stockShares = ? AND stockSymbol = ?;", user_id, shares, symbol)
 
         # Update usser's cash balance
-        db.execute("UPDATE users SET cash = cash + ? WHERE id = ?;", price * shares, user_id)
+        get_db().execute("UPDATE users SET cash = cash + ? WHERE id = ?;", price * shares, user_id)
 
         return redirect("/")
 
     else:
         # Obtain all current stocks and shares of user
-        stock_list = db.execute("SELECT stockSymbol FROM shares WHERE id = ?;", session["user_id"])
+        stock_list = get_db().execute("SELECT stockSymbol FROM shares WHERE id = ?;", session["user_id"])
 
         return render_template("sell.html", stockList=stock_list)
+
+
