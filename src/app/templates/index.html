@@ -1,0 +1,43 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Homepage
+{% endblock %}
+
+{% block main %}
+    <div class="mb-3">
+        <h1>Current Stock Status and Cash Balance</h1>
+        <table class="table table-striped">
+            <thead style="font-weight:bold;">
+                <tr>
+                    <td>Symbol</td>
+                    <td>Shares</td>
+                    <td>Price</td>
+                    <td>Total</td>
+                </tr>
+            </thead>
+            <tbody>
+                {% for stock in stockList%}
+                <tr>
+                    <td>{{ stock.stockSymbol }}</td>
+                    <td>{{ stock.stockShares }}</td>
+                    <td>{{ stock.stockPrice | usd }}</td>
+                    <td>{{ stock.stockTotalHoldings | usd }}</td>
+                </tr>
+                {% endfor %}
+                <tr>
+                    <td></td>
+                    <td></td>
+                    <td style="font-weight:bold;">Cash</td>
+                    <td>{{ userCash | usd }}</td>
+                </tr>
+                <tr>
+                    <td></td>
+                    <td></td>
+                    <td style="font-weight:bold;">TOTAL</td>
+                    <td>{{ totalSum | usd }}</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+{% endblock %}

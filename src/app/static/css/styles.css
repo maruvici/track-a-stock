@@ -1,0 +1,17 @@
+/* Size for brand */
+nav .navbar-brand
+{
+    font-size: xx-large;
+}
+
+/* Heading style */
+nav span.heading
+{
+    font-size: xx-large;
+    font-weight: bold;
+}
+
+.inline-elements {
+    display: inline-block;
+    margin-right: 10px; /* Adjust the margin value to control spacing */
+  }

@@ -1,5 +1,6 @@
-cs50
-Flask
-Flask-Session
-pytz
+flask
+flask-session
 requests
+cs50
+werkzeug
+python-dotenv
