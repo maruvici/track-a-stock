@@ -1,7 +1,67 @@
-/* Size for brand */
-nav .navbar-brand
-{
-    font-size: xx-large;
+/* Default theme is light mode */
+:root {
+    --body-background-color: white;
+    --body-color: #212529;
+    --navbar-background-color: lightgray;
+    --navbar-toggler-background-color: gray;
+    --nav-link-color: darkgray;
+    --navbar-brand-color: black;
+    --navbar-a-hover-background-color: black;
+    --navbar-a-hover-color: white;
+}
+
+.dark-mode {
+    --body-background-color: #212529;
+    --body-color: white;
+    --navbar-background-color: black;
+    --navbar-toggler-background-color: white;
+    --nav-link-color: gray;
+    --navbar-brand-color: white;
+    --navbar-a-hover-background-color: white;
+    --navbar-a-hover-color: black;
+}
+
+body {
+    background-color: var(--body-background-color);
+    color: var(--body-color);
+    padding-bottom: 5rem;
+}
+
+nav,
+.navbar-left,
+li a.nav-link,
+table {
+    background-color: var(--navbar-background-color);
+    color: var(--body-color);
+}
+
+li a.nav-link:hover {
+    background-color: var(--navbar-a-hover-background-color);
+    color: var(--navbar-a-hover-color);
+}
+
+.navbar-left {
+    display: flex;
+    align-items: center;
+}
+
+.navbar-left button {
+    all: unset;
+    margin: 0 0rem 0rem 0.5rem;
+}
+
+#toggleIcon {
+    color: var(--navbar-brand-color);
+    font-size: 20px;
+    font-weight: bold;
+    padding: 14px 16px;
+    text-align: left;
+}
+
+#toggleIcon:hover,
+#toggleIcon:active {
+    background-color: var(--navbar-a-hover-background-color);
+    color: var(--navbar-a-hover-color);
 }
 
 /* Heading style */
