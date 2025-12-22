@@ -1,0 +1,35 @@
+name: Render Mermaid Diagrams
+
+permissions:
+  contents: write
+
+on:
+  push:
+    paths:
+      - "docs/**/*.mmd"
+
+jobs:
+  render-mermaid:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Mermaid CLI
+        run: npm install -g @mermaid-js/mermaid-cli --unsafe-perm=true
+
+      - name: Render Mermaid diagrams to SVG
+        run: |
+          for file in docs/*.mmd; do
+            echo "Rendering $file"
+            mmdc -i "$file" -o "${file%.mmd}.svg" --puppeteerConfigFile puppeteer.json
+          done
+          
+      - name: Commit rendered SVGs
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add docs/*.svg
+          git commit -m "Auto-render Mermaid diagrams" || echo "No changes to commit"
+          git push

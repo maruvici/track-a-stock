@@ -1,0 +1,31 @@
+flowchart LR
+    User["fa:fa-user User<br/>(Browser)"]
+
+    subgraph Railway["fa:fa-cloud Railway Platform"]
+        direction TB
+
+        subgraph Web["fa:fa-server Web Service"]
+            Gunicorn["fa:fa-cogs Gunicorn<br/>(WSGI Server)"]
+            Flask["fa:fa-flask Flask App<br/>(App Factory + Blueprints)"]
+
+            Gunicorn --> Flask
+        end
+    end
+
+    subgraph AppLayers["Application Layers"]
+        Routes["fa:fa-route Routes"]
+        Templates["fa:fa-file-code Jinja Templates"]
+        Static["fa:fa-paint-brush Static Assets"]
+    end
+
+    DB[(fa:fa-database SQLite Database)]
+    API["fa:fa-chart-line Stock Price API"]
+
+    %% Flows 
+    User -->|HTTP Requests| Gunicorn
+    Flask --> Routes
+    Routes --> Templates
+    Routes --> Static
+    Routes -->|SQL Queries| DB
+    Routes -->|API Calls| API
+    Templates -->|HTML Response| User
